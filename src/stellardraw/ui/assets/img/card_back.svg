@@ -1,6 +1,6 @@
 <svg width="300" height="420" xmlns="http://www.w3.org/2000/svg" aria-label="卡牌背面占位图" role="img">
  <title>CardBack</title>
- <desc> StellarDraw 占位素材。卡牌比例 5:7，替换本文件即可更换卡背设计，请保持画布比例不变。</desc>
+ <desc>StellarDraw 占位素材。卡牌比例 5:7，替换本文件即可更换卡背设计，请保持画布比例不变。</desc>
  <defs>
   <!-- 卡面中央的放射底纹 -->
   <linearGradient y2="1" x2="1" y1="0" x1="0" id="cardBg">

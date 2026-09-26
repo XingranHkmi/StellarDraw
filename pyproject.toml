@@ -1,6 +1,6 @@
 [project]
 name = "stellardraw"
-version = "0.1.0"
+version = "1.0.0"
 description = "StellarDraw：面向课堂的抽卡式随机抽号工具（Python + Pywebview）"
 readme = "README.md"
 requires-python = ">=3.13"

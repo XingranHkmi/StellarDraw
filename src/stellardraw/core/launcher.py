@@ -3,13 +3,13 @@
 对应需求：PRD F-09 / F-02c / E-04 / E-05 / §6.4 / AC-08 / AC-26
 
 设计要点：
-    「简洁视图」启动的外部程序与  StellarDraw **完全独立**：
+    「简洁视图」启动的外部程序与 StellarDraw **完全独立**：
         · 不传任何参数
         · 不共享任何数据或状态
         · 不建立进程间通信
         · 主程序不退出、不最小化
 
-     StellarDraw 在这里只承担「启动器」角色。
+    StellarDraw 在这里只承担「启动器」角色。
     这个外部程序可以是任意普通 exe（老师自选、甚至不是本项目的一部分），
     因此实现上必须足够宽容 —— 路径失效只能提示，绝不能崩溃。
 
@@ -112,10 +112,10 @@ def _spawn(exe_path: str) -> subprocess.Popen:
     """以"完全独立"的方式启动目标程序（内部工具函数）。
 
     使用 subprocess.Popen 而非 os.startfile，是为了能捕获启动失败异常；
-    使用 CREATE_FLAGS 使目标程序不随  StellarDraw 的退出而被连带关闭。
+    使用 CREATE_FLAGS 使目标程序不随 StellarDraw 的退出而被连带关闭。
 
     工作目录设为该 exe 所在目录 —— 很多绿色版小工具依赖相对路径读取
-    自己的配置文件，继承  StellarDraw 的工作目录会让它们找不到资源。
+    自己的配置文件，继承 StellarDraw 的工作目录会让它们找不到资源。
     """
     target = Path(exe_path)
     # 路径来自用户在设置面板中的显式选择，不是外部输入

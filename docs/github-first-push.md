@@ -1,4 +1,4 @@
-#  StellarDraw · 首次上传 GitHub 与发布 Release 操作指南
+# StellarDraw · 首次上传 GitHub 与发布 Release 操作指南
 
 > 面向「GitHub 网页用得很熟，但从没敲过 `git commit` / `git push`」的情况。
 > 命令行与 PyCharm 两种方式都给了完整步骤，任选其一即可，**不要混着做**。
@@ -6,20 +6,22 @@
 
 ---
 
-## 0. 先做一次体检（本项目实测结果）
+## 0. 现状体检（2026-09-26 复核）
 
 | 检查项 | 实测结果 | 结论 |
 | --- | --- | --- |
-| 是否已是 Git 仓库 | `fatal: not a git repository` | 需要 `git init` |
-| `.gitignore` | **不存在** | 已补建（见下节），这是最容易出事故的一步 |
-| `user.name` / `user.email` | **未配置**（`~/.gitconfig` 不存在） | 不配置会直接提交失败 |
+| 是否已是 Git 仓库 | **已是**：`main` 分支 1 次提交，已推送至 `origin/main` | 无需再做 `git init` |
+| 远程仓库 | `origin` = `git@github.com:XingranHkmi/StellarDraw.git`（**SSH 方式**） | 已绑定，之后直接 `git push` 即可 |
+| `.gitignore` | 已存在并生效（`data/`、`.venv/`、`*.exe` 均已忽略） | 无需处理 |
+| `user.name` / `user.email` | 已配置（`XingranHkmi` / `jinglekwii@outlook.com`） | 无需处理 |
+| 标签 | 尚无任何 tag | 发布时创建第一个：`v1.0.0` |
 | git 版本 | `2.55.0.windows.3`（随 WorkBuddy 自带） | 可用 |
 | `gh` 命令行 | 未安装 | Release 走网页或 PyCharm，不影响 |
-| 隐私风险 | `data/rosters/高三12班.json` 有真实学生姓名；`data/config.json` 含 `C:\Users\Administrator\...` 本机路径 | 已在 `.gitignore` 中排除 `data/` |
+| 隐私风险 | `data/rosters/高三12班.json` 有真实学生姓名 | 已在 `.gitignore` 中排除 `data/` |
 | 体积风险 | `.venv` 30MB、`__pycache__`、`.idea`、`.workbuddy` | 已全部排除 |
-| 杂项 | `=1.2.0`（0 字节，疑似误敲命令产生的垃圾文件）、`抽号器.exe`（737KB）、`README.md`（0 字节） | 见第 7 节「推送前清理」 |
+| 杂项 | `README.md` **已补齐**；`=1.2.0` 垃圾文件**已删除**；`抽号器.exe`（737KB，2019 年时间戳）仍在 | 见第 6 节「推送前的清理建议」 |
 
-**我已为你创建了 `.gitignore`**，并用真实目录树做过验证：执行 `git add -A` 后，只有 `.gitignore`、`README.md`、`pyproject.toml`、`uv.lock`、`src/**`、`tests/**`、`docs/**`、`main.py` 会入库，其余全部被忽略。
+**`.gitignore` 已就位**，并用真实目录树验证过：执行 `git add -A` 后，只有 `.gitignore`、`README.md`、`pyproject.toml`、`uv.lock`、`src/**`、`tests/**`、`docs/**`、`main.py` 会入库，其余全部被忽略。**本机已按本文流程完整走过一遍并成功推送**，下面保留全部步骤，同时可作为「换电脑 / 重建仓库」时的操作手册。
 
 ---
 
@@ -51,6 +53,8 @@ git config --global core.quotepath false    # 让 git status 正常显示中文�
 
 ### 1.3 选择认证方式（二选一）
 
+> **本机现状**：已配置 **SSH**（远程地址 `git@github.com:XingranHkmi/StellarDraw.git`），下面的 HTTPS + Token 步骤可以跳过。换机或改回 HTTPS 时再照下表操作。
+
 | 方式 | 做法 | 适合 |
 | --- | --- | --- |
 | **HTTPS + 个人访问令牌（推荐新手）** | GitHub 网页 → 右上角头像 → **Settings → Developer settings → Personal access tokens → Tokens (classic) → Generate new token** → 勾选 `repo`（私有库还需 `workflow`）→ 生成后**立刻复制保存**（只显示一次）。推送时用户名填 GitHub 用户名，密码框**粘贴这个 token**，不是登录密码。 | 最通用，PyCharm 也用同一套 |
@@ -61,6 +65,8 @@ git config --global core.quotepath false    # 让 git status 正常显示中文�
 ---
 
 ## 2. 方式一：Git 命令行（推荐，出问题最好排查）
+
+> **本机已完成 ②~⑧**（仓库已初始化并推送至 `origin/main`）。以下命令完整保留，供换机 / 重建仓库时照做；日常提交只看本节末尾的「常用后续命令」。
 
 在项目根目录打开 Git Bash（或 PyCharm 自带终端）逐条执行：
 
@@ -125,7 +131,7 @@ PyCharm 会自动读取我建好的 `.gitignore`。Commit 工具窗里被忽略�
 ### 3.3 首次提交
 1. `Alt+0` 打开 **Commit** 窗。
 2. 勾选要提交的文件（**不要**勾 `=1.2.0`；正常它已被忽略）。
-3. 在下方输入框写提交信息：`feat: 初始化  StellarDraw 课堂抽号机项目`。
+3. 在下方输入框写提交信息：`feat: 初始化 StellarDraw 课堂抽号机项目`。
 4. 点 **Commit**（先别点 `Commit and Push...`——还没配远程，会多弹一次框）。
 
 ### 3.4 绑定远程地址
@@ -146,24 +152,29 @@ PyCharm 右下角弹出 `Pushed 1 commit to origin/main`，网页刷新即可看
 
 **概念先分清**：
 
-- **Tag（标签）**：指向某一次提交的不可变指针，是版本的「锚点」，命名如 `v1.10.0`。
-- **Release（发布）**：GitHub 在 Tag 之上加的一层包装——标题、发布说明、可下载附件（你的 `抽号器.exe`）。**一个 Tag 只能有一个 Release。**
+- **Tag（标签）**：指向某一次提交的不可变指针，是版本的「锚点」，命名如 `v1.0.0`。
+- **Release（发布）**：GitHub 在 Tag 之上加的一层包装——标题、发布说明、可下载附件（你打包出的 `StellarDraw.exe`）。**一个 Tag 只能有一个 Release。**
 
 ### 4.1 版本号怎么定（语义化版本 SemVer）
 
-格式 `主版本.次版本.修订号`，例如 `1.10.0`：
+格式 `主版本.次版本.修订号`，例如 `1.0.0`：
 
 | 位 | 何时 +1 | 例子 |
 | --- | --- | --- |
 | 主版本 | 不兼容的大改 | 1.x → 2.0.0 |
-| 次版本 | 新增功能，向下兼容 | 1.9 → 1.10.0 |
-| 修订号 | 只修 bug | 1.10.0 → 1.10.1 |
+| 次版本 | 新增功能，向下兼容 | 1.0.0 → 1.1.0 |
+| 修订号 | 只修 bug | 1.1.0 → 1.1.1 |
 
-**本项目的建议**：PRD 已推进到 v1.10，而 `src/stellardraw/__init__.py` 与 `pyproject.toml` 里还写着 `0.1.0`。发布前请把三处**统一改成同一版本号**（PRD §也要求 `__version__` 是单一数据源）：
+**本项目已统一为 `1.0.0`（2026-09-26 落实）**，四处保持一致：
 
-- `src/stellardraw/__init__.py` → `__version__ = "1.10.0"`
-- `pyproject.toml` → `version = "1.10.0"`
-- Tag → `v1.10.0`
+| 位置 | 当前值 |
+| --- | --- |
+| `src/stellardraw/__init__.py` | `__version__ = "1.0.0"` |
+| `pyproject.toml` | `version = "1.0.0"` |
+| `uv.lock` | 由 `uv sync` 同步为 `1.0.0` |
+| Tag（待打） | `v1.0.0` |
+
+> **注意区分两个版本号**：`docs/PRD.md` 表头的 **v1.10 是「文档版本」**（记录需求迭代到第几轮），**不等于产品版本**。产品版本以 `__version__` 为单一数据源（PRD §4.2 的「"关于"页内容规格」表已明确该要求），"关于"页显示的也正是它。
 
 改完记得 `git commit` 并 `git push`，**让 Tag 打在包含这次改动的提交上**。
 
@@ -171,10 +182,10 @@ PyCharm 右下角弹出 `Pushed 1 commit to origin/main`，网页刷新即可看
 
 ```bash
 # 带注释的标签（推荐，可写清版本含义）
-git tag -a v1.10.0 -m "v1.10.0：窗口几何适配高 DPI、静音按钮改为运行态"
+git tag -a v1.0.0 -m "v1.0.0：首个正式版（抽号 / 氛围 / 特殊效果 全部交付）"
 
 # ⚠️ tag 不会随 git push 自动上传，必须单独推
-git push origin v1.10.0
+git push origin v1.0.0
 # 或一次推所有本地标签：git push --tags
 
 git tag            # 查看本地标签
@@ -185,34 +196,35 @@ git ls-remote --tags origin   # 确认远端已收到
 
 ### 4.3 PyCharm 里打 Tag
 
-**Git 工具窗（`Alt+9`）→ 选中提交 → 右键 → New Tag**（或菜单 **Git → New Tag**）→ Tag name `v1.10.0`，Message 写版本说明 → Create。
+**Git 工具窗（`Alt+9`）→ 选中提交 → 右键 → New Tag**（或菜单 **Git → New Tag**）→ Tag name `v1.0.0`，Message 写版本说明 → Create。
 推送时：`Ctrl+Shift+K` → 左下角勾选 **Push Tags**（或选 `All`），否则标签留在本地。
 
 ### 4.4 在网页上发布 Release
 
 1. 仓库页面右侧 **Releases** → **Create a new release**（或 `... → Draft a new release`）。
-2. **Choose a tag**：下拉选 `v1.10.0`；若下拉里没有，直接输入 `v1.10.0`，下方会出现 `+ Create new tag: v1.10.0 on publish`（网页会顺带帮你建标签，适合不打命令行的情况）。
-3. **Previous tag**：第一次发布留空或选 `v0.1.0`（可选，用于自动生成变更对比）。
-4. **Release title**：`v1.10.0 · 高 DPI 适配与静音逻辑修正`（写人话，别只写版本号）。
+2. **Choose a tag**：下拉选 `v1.0.0`；若下拉里没有，直接输入 `v1.0.0`，下方会出现 `+ Create new tag: v1.0.0 on publish`（网页会顺带帮你建标签，适合不打命令行的情况）。
+3. **Previous tag**：**首次发布留空**（没有更早的版本可比对）。
+4. **Release title**：`v1.0.0 · 首个正式版`（写人话，别只写版本号）。
 5. **描述区**：右上角有 **Generate release notes** 按钮，可自动把自上次 tag 以来的 PR / 提交列出来，再手动改成面向老师的语言。推荐结构：
 
 ```markdown
-## 本次更新
-- 新增：高 DPI（150%/200%）下窗口自动居中与缩放
-- 修复：主界面静音按钮不再回写设置面板
-- 优化：结果漂移动画时序，翻牌更跟手
+## 本次更新（首个正式版）
+- 抽号：抽取 1 次 / 5 次、去重模式、多班级名单管理、CSV 导入与模板
+- 氛围：牌堆滑出、点击 3D 翻转、看板娘三态、Web Audio 合成音效
+- 特殊效果：增大概率 / 结果漂移 / 课堂叫醒
+- 兼容：高 DPI（150% / 200%）下窗口按物理像素折算并在工作区居中
 
 ## 使用说明
 双击 StellarDraw.exe 即可运行，需 Windows 10/11 且已安装 WebView2 运行时。
 
 ## 已知问题
-- 仅在 1920×1080@100% 缩放下完成实测，其它缩放欢迎反馈。
+- 仅在 1920×1080@100% 缩放下完成实测，其它缩放比例欢迎反馈。
 ```
 
 6. **附加二进制文件**：把打包好的 exe **拖进下方虚线框**上传（这就是 GitHub 上发布 exe 的标准做法，而不是把 exe 提交进仓库）。
 7. 想先给别人预览就勾 **Set as a draft**；当前版本稳定可不勾 **pre-release**。
 8. 点 **Publish release**。之后这个 Release 会有一个固定地址：
-   `https://github.com/<用户名>/StellarDraw/releases/tag/v1.10.0`
+   `https://github.com/XingranHkmi/StellarDraw/releases/tag/v1.0.0`
 
 > 若要更新 exe：删掉旧附件、重新上传同名文件即可，不必删 Release；若要改版本号，必须新建 tag。
 
@@ -242,11 +254,14 @@ git ls-remote --tags origin   # 确认远端已收到
 
 ## 6. 推送前的清理建议（可选，但推荐）
 
-你当前目录里有三样东西建议处理掉再首次提交：
+**已完成（2026-09-26 复核）**：
 
-1. **`=1.2.0`**（0 字节）：看着像 `pip install pywebview >=1.2.0` 少写引号被 shell 当成重定向产生的垃圾文件。已加入 `.gitignore`，更干净的做法是直接删除文件本身。
-2. **`抽号器.exe`**：737KB、时间戳是 2019 年，与本项目的打包产物存疑，已按 `*.exe` 忽略。确认无用后可删；真正发布时用它当 Release 附件。
-3. **`README.md`**：当前 **0 字节**。仓库首页就是 README，空文件会让项目页很难看。建议至少写上：项目简介、截图、安装与运行方式、打包命令、素材来源（`CREDITS.md`）。需要我帮你写可以直接说。
+1. ~~**`=1.2.0`**（0 字节，疑似 `pip install pywebview >=1.2.0` 少写引号被 shell 当成重定向产生的垃圾文件）~~ → **已删除**。
+2. ~~**`README.md` 0 字节**~~ → **已补齐**（简介、老师用法、开发接手、打包指引、素材授权、文档索引）。
+
+**仍建议处理**：
+
+3. **`抽号器.exe`**：737KB、时间戳是 2019 年，与本项目打包产物存疑，已按 `*.exe` 忽略。确认无用后可删；真正发布时请把打包出的 **`StellarDraw.exe`** 拖进 Release 附件区（exe 不进仓库）。
 
 ---
 
@@ -266,17 +281,20 @@ git reset --soft HEAD~1          # 撤销上一次提交，改动保留在工作
 
 ```bash
 cd /d/100_Projects/ClassRand
+# —— 首次建仓（本机已完成，仅在换机 / 重建时执行）——
 git config --global user.name  "<你的名字>"
 git config --global user.email "<你的邮箱>"
 git config --global core.quotepath false
 git init -b main
+git remote add origin git@github.com:XingranHkmi/StellarDraw.git   # 本机走 SSH
+git push -u origin main
+# —— 日常提交（本机现在从这里开始）——
 git add -A
 git status                       # ⚠️ 确认没有 data/ .venv *.exe
-git commit -m "feat: 初始化 StellarDraw 课堂抽号机项目"
-git remote add origin https://github.com/<用户名>/StellarDraw.git
-git push -u origin main          # 密码框粘贴 Personal Access Token
+git commit -m "fix: 修复翻牌音效只响一次的问题"
+git push
 # —— 发版 ——
-git tag -a v1.10.0 -m "v1.10.0：高 DPI 适配与静音逻辑修正"
-git push origin v1.10.0          # ⚠️ tag 要单独推
-# 然后去网页 Releases → Draft a new release → 选 v1.10.0 → 写说明 → 拖入 exe → Publish
+git tag -a v1.0.0 -m "v1.0.0：首个正式版（抽号 / 氛围 / 特殊效果 全部交付）"
+git push origin v1.0.0           # ⚠️ tag 要单独推
+# 然后去网页 Releases → Draft a new release → 选 v1.0.0 → 写说明 → 拖入 StellarDraw.exe → Publish
 ```

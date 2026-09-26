@@ -1,5 +1,5 @@
 /**
- *  StellarDraw · JS Bridge 封装
+ * StellarDraw · JS Bridge 封装
  * ---------------------------------------------------------------------------
  * 职责：把 pywebview 注入的 window.pywebview.api 包装成「永不抛异常」的调用接口。
  *

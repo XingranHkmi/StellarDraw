@@ -945,7 +945,7 @@ class Api:
 
         对应需求：PRD F-09 / E-04 / E-05 / §6.4。
 
-        注意：该程序与  StellarDraw **完全独立** —— 不传参、不共享数据、
+        注意：该程序与 StellarDraw **完全独立** —— 不传参、不共享数据、
         不建立进程间通信。主程序不退出、不最小化。
         """
         raw = str(self._config.get("external_exe", ""))
