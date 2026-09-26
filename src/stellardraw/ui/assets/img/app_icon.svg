@@ -1,0 +1,33 @@
+<svg width="256" height="256" xmlns="http://www.w3.org/2000/svg" aria-label="StellarDraw 应用图标" role="img">
+ <title>AppIcon</title>
+ <desc>占位图标。可用于打包时的 --icon 参数（需先转换为 .ico），或作为界面内的品牌标识。</desc>
+ <defs>
+  <linearGradient y2="1" x2="1" y1="0" x1="0" id="iconBg">
+   <stop stop-color="#7C6BFF" offset="0%"/>
+   <stop stop-color="#4FC3F7" offset="100%"/>
+  </linearGradient>
+  <linearGradient y2="1" x2="0" y1="0" x1="0" id="iconCard">
+   <stop stop-color="#FFFFFF" offset="0%"/>
+   <stop stop-color="#E8E4FF" offset="100%"/>
+  </linearGradient>
+ </defs>
+ <!-- 圆角底板 -->
+ <!-- 后方卡牌（倾斜） -->
+ <!-- 前方卡牌（正面） -->
+ <g>
+  <title>Layer 1</title>
+  <rect id="svg_1" fill="url(#iconBg)" rx="52" height="240" width="240" y="8" x="8"/>
+  <g transform="rotate(-16 128.417 132)" id="svg_2">
+   <rect id="svg_3" opacity="0.45" fill="#FFFFFF" rx="13" height="134" width="96" y="60" x="66.41667"/>
+  </g>
+  <g id="svg_4">
+   <rect transform="rotate(8 128.938 125.78)" id="svg_5" fill="url(#iconCard)" rx="14" height="140" width="100" y="55.78005" x="78.93783"/>
+   <rect transform="rotate(8 128.938 125.78)" id="svg_6" stroke-width="5" stroke="#FFC46B" fill="none" rx="14" height="140" width="100" y="55.78005" x="78.93783"/>
+   <!-- 卡面星形 -->
+   <path transform="rotate(8 131.79 110.321)" id="svg_7" fill="#7C6BFF" d="m131.78945,70.82092l11,28l30,3l-23,19l7,29l-25,-15l-25,15l7,-29l-23,-19l30,-3l11,-28z"/>
+   <!-- 卡面底部两道文字占位线 -->
+   <rect transform="rotate(8 123.719 162.915)" id="svg_8" opacity="0.45" fill="#7C6BFF" rx="3.5" height="7" width="56" y="159.4151" x="95.71884"/>
+   <rect transform="rotate(8 121.979 175.293)" id="svg_9" opacity="0.28" fill="#7C6BFF" rx="3" height="6" width="36" y="172.29345" x="103.97918"/>
+  </g>
+ </g>
+</svg>

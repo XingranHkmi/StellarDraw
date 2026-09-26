@@ -1,0 +1,61 @@
+[project]
+name = "stellardraw"
+version = "0.1.0"
+description = "StellarDraw：面向课堂的抽卡式随机抽号工具（Python + Pywebview）"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "pywebview>=6.2.1",
+]
+
+# ---------------------------------------------------------------------------
+# 依赖说明（依据 AGENTS.md 第七章）
+#   运行时依赖：pywebview（见上方 dependencies）
+#   开发依赖：pytest、ruff、pytest-cov（见文件末尾的 [dependency-groups].dev）
+#     说明：本机 .venv 已启用 include-system-site-packages = true，
+#           系统解释器（C:\Program Files\Python313）中已安装 pytest 9.1.1
+#           与 ruff 0.16.7，故此前未重复声明；pytest-cov 由 uv add --dev 引入。
+#     若需在干净环境复现，执行：uv add --dev pytest ruff pytest-cov
+# ---------------------------------------------------------------------------
+
+[tool.pytest.ini_options]
+# 让测试可以直接 import stellardraw，无需安装包或手动改 sys.path
+pythonpath = ["src"]
+# 仅收集 tests/ 目录下的用例
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+
+[tool.coverage.run]
+# 覆盖率统计范围：只统计产品源码（测试代码与虚拟环境不在内）
+source = ["src/stellardraw"]
+
+[tool.coverage.report]
+# 报告里列出未覆盖的行号，便于定位补测点
+show_missing = true
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+# 排除虚拟环境与打包产物；`.workbuddy/tmp/` 是探针脚本与一次性工作目录，
+# 不是项目源码，ruff 不要去 lint 它（避免「探针脚本能用就行」被 lint 干扰）。
+exclude = [".venv", "build", "dist", "__pycache__", ".idea", ".workbuddy"]
+
+[tool.ruff.lint]
+# E/W: pycodestyle  |  F: pyflakes  |  I: isort 导入排序
+# UP: pyupgrade      |  B: bugbear   |  SIM: flake8-simplify
+select = ["E", "W", "F", "I", "UP", "B", "SIM"]
+
+[tool.ruff.lint.per-file-ignores]
+# 根目录 main.py 是薄壳启动器：它必须先把 src/ 注入 sys.path，
+# 之后才能导入 stellardraw，因此 import 语句天然被拆成两段。
+# 这是刻意为之的结构（见 AGENTS.md 第四章「两级入口」），故豁免相关规则。
+"main.py" = ["E402", "I001"]
+
+[tool.ruff.format]
+# 使用双引号，与项目现有代码风格保持一致
+quote-style = "double"
+
+[dependency-groups]
+dev = [
+    "pytest-cov>=7.1.0",
+]

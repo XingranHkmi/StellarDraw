@@ -1,0 +1,314 @@
+/* ==========================================================================
+    StellarDraw · 主界面布局（PRD §4.1 / §4.3）
+   --------------------------------------------------------------------------
+   整页用 CSS Grid 铺满视口，禁止滚动（AC-22：4K @200% 下无滚动条溢出）。
+   顶部 / 中部 / 底部三行；中部再分「结果展示区」与「效果区」两列。
+   ========================================================================== */
+
+.app {
+    display: grid;
+    /* 三行：顶栏 / 结果舞台 / 底部 dock
+       特效栏 v1.9.1 改回 .stage 内的右侧浮层（屏幕右下角竖条），
+       不再独立成行 —— grid 回到 3 行。 */
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    gap: var(--space-sm);
+
+    /* border-box 全局生效，padding 不会把 100% 撑出视口 */
+    height: 100%;
+    padding: var(--space-md) var(--space-lg);
+}
+
+/* --------------------------------------------------------------------------
+   1. 顶部：卡牌区（左）· 加载状态（中）· 看板娘（右）
+   --------------------------------------------------------------------------
+   【为什么两侧是等宽的 1fr 而不是 auto】中间那列放着加载图标与「准备就绪」文字，
+   必须**始终**落在窗口正中。若两侧写成 auto，它们就会各自按牌堆 / 看板娘的实际
+   尺寸取值，两个宽度一旦不等，中间列就被推偏 (左宽 − 右宽) / 2：
+       · 2560×1440：牌堆 190 vs 看板娘 230 → 偏 20px
+       · 矮窗口：看板娘被 16vh 封顶后变窄，牌堆反而更宽 → 偏向另一侧
+   实测用户截图里这一偏就是 17~18px，肉眼一眼可辨。
+   改成等宽 1fr 后，两侧轨道永远相等，中间列永远居中；牌堆贴左、看板娘贴右
+   的位置分别由 justify-self 钉住，与之前完全一致。
+   -------------------------------------------------------------------------- */
+.topbar {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: var(--space-md);
+}
+
+/* --- 卡牌区：叠放的牌堆，同时是卡牌滑出动画的起点坐标 ---
+   【为什么要右移】牌堆的各层是向左下扇开的（translate 取负值 + 负角度 rotate，
+   见下方 .deck__card--back*），加上 transform-origin 在底边中点，旋转会让卡片的
+   左下角绕出去。实测最左侧那张（back5）会越过窗口左边缘：
+       1280×720 → -25.5px   1920×1080 → -36.2px   2560×1440 / 3840×2160 → -47.4px
+   因此把整个牌堆往右推一段，偏移量用 clamp 随窗口缩放，保证所有尺寸下 back5 的
+   最左端都落在视口内、且离边缘保留约 15px 余量（阴影柔和外扩也吃不到边上）：
+       1280 → 15.5px   1920 → 25.2px   2560 / 3840 → 16.6px
+
+   【为什么用 left 而不是 margin-left】这一点很容易踩坑，务必保留：
+   .topbar 是 `auto minmax(0,1fr) auto` 三列布局，中间那列放着状态图标与「准备就绪」
+   文字。margin-left 会**加宽第一列的轨道**，于是中间列被整体推向右方 ——
+   实测 1169×626 窗口下状态块从窗口中心（584.1）偏到 604.1，足足偏出 19.6px
+   （屏幕上肉眼可辨，用户反馈"文字和卡片不居中了"）。
+   `left` 是相对定位偏移，只挪「画出来的位置」，**完全不参与布局**，第一列轨道宽度
+   仍是牌堆自身宽度 → 中间列回到窗口正中，而牌堆的视觉位置与用 margin-left 时一模一样。
+   另外 #deck 的 getBoundingClientRect() 会包含 left 偏移，所以卡牌滑出的起点依旧准确。 */
+.deck {
+    position: relative;
+
+    /* 与卡牌同比例（5:7），保证滑出时缩放比例自然 */
+    width: clamp(96px, 8.5vw, 190px);
+    aspect-ratio: 5 / 7;
+
+    /* 相对偏移，不占布局空间（见上方说明） */
+    left: clamp(40px, 3.2vw, 64px);
+    justify-self: start;
+}
+
+/*
+  牌堆的单张卡背（PRD F-11 / AC-11）。
+  错位量一律用百分比 —— translate 的百分比是相对**元素自身尺寸**的，
+  因此牌堆随窗口缩小时，层叠间距会等比收缩，不会在小窗口里糊成一团。
+
+  阴影是**静态装饰**：不放进 transition / animation，不参与每帧重绘，
+  符合 PRD NFR-P7（禁止动画化 box-shadow）。
+*/
+.deck__card {
+    position: absolute;
+    inset: 0;
+    border-radius: var(--radius-md);
+    background: url("../assets/img/card_back.svg") center / contain no-repeat;
+
+    /* 静态错位，营造层叠感（PRD F-11）。这些 transform 不参与动画 */
+    transform-origin: center bottom;
+    box-shadow: 0 6px 14px rgb(46 42 69 / 14%);
+}
+
+/* 自远及近：越靠后越淡、错位与倾斜越大，形成明显的「一叠牌」观感 */
+.deck__card--back5 {
+    opacity: 0.36;
+    transform: translate(-16%, 11%) rotate(-11deg);
+}
+
+.deck__card--back4 {
+    opacity: 0.5;
+    transform: translate(-12%, 8%) rotate(-8deg);
+}
+
+.deck__card--back3 {
+    opacity: 0.66;
+    transform: translate(-8%, 5.5%) rotate(-5.5deg);
+}
+
+.deck__card--back2 {
+    opacity: 0.83;
+    transform: translate(-4%, 2.6%) rotate(-2.8deg);
+}
+
+/* 最上面那张：完整不透明 + 更重的落影，让「牌堆顶层」一眼可辨 */
+.deck__card--back1 {
+    opacity: 1;
+    transform: translate(0, 0) rotate(0deg);
+    box-shadow: 0 10px 22px rgb(46 42 69 / 24%);
+}
+
+/* --- 加载状态：图标 + 文案 --- */
+.status {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-xs);
+    min-width: 0;
+}
+
+.status__icon {
+    color: var(--color-primary);
+    font-size: clamp(28px, 2.4vw, 52px);
+    line-height: 1;
+}
+
+.status__text {
+    color: var(--color-text-muted);
+    font-size: var(--font-size-small);
+    text-align: center;
+}
+
+/* 抽取中：图标旋转（只动 transform，NFR-P6）
+   will-change 只在动画期间挂上，结束即随类移除（NFR-P8） */
+.status--loading .status__icon {
+    animation: status-spin 900ms linear infinite;
+    will-change: transform;
+}
+
+@keyframes status-spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* --------------------------------------------------------------------------
+   看板娘（PRD F-14 / AC-14）
+   --------------------------------------------------------------------------
+   结构：.mascot（占位容器，尺寸固定）> .mascot__stage（三态叠放层）
+   三态素材全部预先加载并叠在一起，靠 data-state 切换 opacity 交叉淡入：
+     · 不存在「换 src 导致的白屏」闪烁；
+     · opacity 与 transform 都在 GPU 合成层上完成（NFR-P6）；
+     · 关闭开关时图片 visibility: hidden，容器尺寸不变，布局不塌陷（TI-16）。
+   -------------------------------------------------------------------------- */
+.mascot {
+    position: relative;
+
+    /* 素材是 400×600（2:3），容器同比例，避免替换素材后布局跳动。
+       同时用 16vh 封顶：否则在 720p 这类矮窗口里，顶栏会把结果展示区
+       挤得放不下卡牌（AC-22 要求小窗口下不溢出）。 */
+    width: min(clamp(120px, 10vw, 230px), 16vh);
+    aspect-ratio: 2 / 3;
+
+    /* 1fr auto 1fr 两侧等宽，这里钉住看板娘贴右，对应 PRD §4.1 布局图 */
+    justify-self: end;
+}
+
+/* 三态叠放层：绝对定位铺满容器，承担呼吸浮动动画 */
+.mascot__stage {
+    position: absolute;
+    inset: 0;
+}
+
+.mascot__img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+
+    /* 只有当前状态的图片可见；交叉淡入只动 opacity（NFR-P6） */
+    opacity: 0;
+    transition: opacity var(--dur-fade) linear;
+}
+
+.mascot[data-state="idle"] .mascot__img--idle,
+.mascot[data-state="loading"] .mascot__img--loading,
+.mascot[data-state="result"] .mascot__img--result {
+    opacity: 1;
+}
+
+/*
+  呼吸 / 浮动动效（PRD F-14「待机态呼吸」，TI-22 决策）：
+    · 只改 transform 与 opacity，零重绘成本（NFR-P6）；
+    · **只作用于 .mascot__stage 这一个元素**，三张图不各自起动画，
+      把单帧并发动画元素数压到 1（NFR-P10：单帧 ≤ 8）；
+    · 三态共用同一条关键帧，仅改时长 —— 待机舒缓、抽取中稍快、出结果更活泼。
+    · 无限循环动画期间一直需要合成层，因此 will-change 常驻且只声明 transform（NFR-P8）。
+*/
+.mascot[data-state="idle"] .mascot__stage {
+    animation: mascot-float 3600ms var(--ease-in-out) infinite;
+    will-change: transform;
+}
+
+.mascot[data-state="loading"] .mascot__stage {
+    animation: mascot-float 1500ms var(--ease-in-out) infinite;
+    will-change: transform;
+}
+
+.mascot[data-state="result"] .mascot__stage {
+    animation: mascot-float 980ms var(--ease-in-out) infinite;
+    will-change: transform;
+}
+
+/* 关闭看板娘时连动画一起停掉，避免在看不见的地方白烧 GPU。
+
+   【选择器为什么要写成这样】三态规则是 `.mascot[data-state="x"] .mascot__stage`，
+   权重是 3 个「类级」选择器；若这里只写 `.mascot__stage.is-invisible`（2 个），
+   权重更低，`animation: none` 会被上面的呼吸动画覆盖掉 —— 实测确实如此
+   （无头探针测到关闭后仍在跑 mascot-float）。
+   补上 `[data-state]` 让权重达到 4 个，才能稳定压过三态规则。 */
+.mascot[data-state] .mascot__stage.is-invisible {
+    animation: none;
+}
+
+@keyframes mascot-float {
+    0%,
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+
+    50% {
+        opacity: 0.92;
+        transform: translateY(-1.6%) scale(1.018);
+    }
+}
+
+/* --------------------------------------------------------------------------
+   2. 中部：结果展示区 + 特殊效果区（P2）
+   --------------------------------------------------------------------------
+   【重要】结果展示区**独占整个舞台宽度**，特效栏是浮层（见 effects.css）。
+   这样做是为了让卡牌在**窗口正中**居中：若把特效栏放在网格的 fix 列里，
+   结果区会被挤窄，卡牌只会在"变窄的那块区域"内居中，视觉上就像被右侧
+   特效栏推到了左边（实测偏差约等于特效栏宽度的一半）。
+   -------------------------------------------------------------------------- */
+.stage {
+    /* relative：特效栏以本区域为定位参照做绝对定位 */
+    position: relative;
+
+    /* min-height:0 让内部 flex 容器可以收缩，否则 4K 下会顶出容器 */
+    min-height: 0;
+    overflow: hidden;
+}
+
+.stage__results {
+    /* relative + z-index：上一轮卡牌的「幽灵层」以本区域为参照（见 card.css），
+       同时保证卡牌始终压在特效栏之上 */
+    position: relative;
+    z-index: 1;
+
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(8px, 1vw, 24px);
+
+    /* 撑满舞台高度，居中逻辑只由字体与卡牌尺寸决定 */
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+}
+
+/* --------------------------------------------------------------------------
+   3. 底部：工具入口（左）· 抽取按钮（右）
+   -------------------------------------------------------------------------- */
+.dock {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-md);
+}
+
+.dock__tools,
+.dock__draw {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+/* 1280×720 这类小窗口下，底栏要放得下「设置 / 音效 / 简洁视图 + 抽取×2」，
+   收紧间距与内边距兜底（AC-22：不出现溢出） */
+@media (max-width: 1500px) {
+    .dock__tools,
+    .dock__draw {
+        gap: var(--space-xs);
+    }
+
+    .btn--tool {
+        padding: 0 var(--space-sm);
+    }
+
+    .app {
+        padding: var(--space-sm) var(--space-md);
+    }
+}

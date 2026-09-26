@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 600" width="400" height="600" role="img" aria-label="看板娘占位图 - 待机状态">
+  <title>看板娘占位图 - 待机 (idle)</title>
+  <desc> StellarDraw 占位素材。替换本文件即可更换看板娘形象，请保持文件名与画布比例 2:3 不变。</desc>
+
+  <defs>
+    <linearGradient id="idleBody" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#8B7CFF"/>
+      <stop offset="100%" stop-color="#5B7CFA"/>
+    </linearGradient>
+    <linearGradient id="idleHair" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#7C6BFF"/>
+      <stop offset="100%" stop-color="#4FC3F7"/>
+    </linearGradient>
+  </defs>
+
+  <!-- 脚下光晕 -->
+  <ellipse cx="200" cy="556" rx="118" ry="16" fill="#8B7CFF" opacity="0.16"/>
+
+  <!-- 身体 -->
+  <path d="M200 262 C246 262 272 300 276 380 L284 520 Q284 536 268 536 L132 536 Q116 536 116 520 L124 380 C128 300 154 262 200 262 Z"
+        fill="url(#idleBody)" opacity="0.92"/>
+
+  <!-- 头部 -->
+  <circle cx="200" cy="185" r="72" fill="#FFE3EC"/>
+
+  <!-- 头发：刘海 + 双马尾 -->
+  <path d="M128 182 A72 72 0 0 1 272 182 L272 148 A72 58 0 0 0 128 148 Z" fill="url(#idleHair)"/>
+  <path d="M130 176 q-16 92 8 152 q-32 -62 -24 -152 Z" fill="url(#idleHair)"/>
+  <path d="M270 176 q16 92 -8 152 q32 -62 24 -152 Z" fill="url(#idleHair)"/>
+
+  <!-- 眼睛（待机：正常圆瞳） -->
+  <ellipse cx="176" cy="190" rx="9" ry="12" fill="#3B3A5A"/>
+  <ellipse cx="224" cy="190" rx="9" ry="12" fill="#3B3A5A"/>
+  <circle cx="179" cy="186" r="3" fill="#FFFFFF"/>
+  <circle cx="227" cy="186" r="3" fill="#FFFFFF"/>
+
+  <!-- 嘴 -->
+  <path d="M191 213 q9 9 18 0" stroke="#3B3A5A" stroke-width="3" fill="none" stroke-linecap="round"/>
+
+  <!-- 腮红 -->
+  <ellipse cx="157" cy="207" rx="12" ry="7" fill="#FF8FB1" opacity="0.45"/>
+  <ellipse cx="243" cy="207" rx="12" ry="7" fill="#FF8FB1" opacity="0.45"/>
+
+  <!-- 占位标识 -->
+  <text x="200" y="580" text-anchor="middle" font-family="sans-serif" font-size="19"
+        fill="#8B7CFF" opacity="0.7" letter-spacing="2">PLACEHOLDER - IDLE</text>
+</svg>

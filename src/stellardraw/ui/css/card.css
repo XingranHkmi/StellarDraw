@@ -1,0 +1,293 @@
+/* ==========================================================================
+    StellarDraw · 卡牌（滑出 / 待翻开 / 3D 翻转）
+   --------------------------------------------------------------------------
+   需求：PRD F-06 / F-07 / F-08 / F-12 / F-13 / AC-05 / AC-06 / AC-07
+   性能（PRD NFR-P6 / P8 / P9 / P14）：
+     · 滑出只动外层 .card 的 transform + opacity
+     · 翻转只动内层 .card__inner 的 rotateY
+     两层分开，避免同一个元素既是位移又是旋转（否则动画会互相覆盖）
+     · 每个面必须 backface-visibility: hidden，否则背面会透出来
+   字号：PRD TI-13 用 clamp() 按容器宽度自动降档，下限取 AC-07③④ 的规定值
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. 卡牌外壳：负责「滑出」位移
+   -------------------------------------------------------------------------- */
+.card {
+    position: relative;
+    flex: 0 0 auto;
+    aspect-ratio: 5 / 7;
+
+    /* 3D 透视（PRD F-13 / AC-13）：没有透视时 rotateY 会退化成「水平压扁」的
+       仿射变换，中途看不出立体感与厚度。perspective 只作用于子元素，
+       不影响 .card 自己负责的滑出位移，两者互不干扰。 */
+    perspective: var(--card-depth);
+
+    /* 滑出动画：从牌堆位置平移 + 放大到最终位置。
+       过渡只包含 transform 与 opacity（NFR-P6） */
+    transition: transform var(--dur-slide) var(--ease-slide),
+                opacity var(--dur-fade) linear;
+}
+
+/* 单张：结果展示区的主角，尺寸最大。
+   宽度取「按视口宽度算」与「按视口高度算」两者中的**较小值** ——
+   否则在 1280×720 这种最小窗口下，卡牌会按宽度算出 400+px 的高度，
+   超出可用高度被 overflow:hidden 裁掉（AC-22：小窗口下不得溢出）。
+   高度受限于 38vh：卡牌宽高比 5:7，38vh 的宽度对应约 53vh 的高度。 */
+.card--solo {
+    width: min(clamp(260px, 22vw, 580px), 38vh);
+}
+
+/* 5 张并排：整体更小，仍保证姓名行 ≥ 40px（AC-07④） */
+.card--multi {
+    width: min(clamp(150px, 13.5vw, 360px), 26vh);
+}
+
+/* 入场所需的「瞬移到起点」状态：先关掉过渡，把 transform 直接设为起点，
+   强制一次回流后再移除本类，浏览器就会从起点补间到终点 */
+.card--entering {
+    transition: none;
+}
+
+/* 翻开的卡不再接受点击（避免重复触发翻转） */
+.card--flipped {
+    cursor: default;
+}
+
+/* 上一轮卡牌的退场：下次抽取时整体淡出缩小后由 JS 移除（PRD §6.2⑥）
+   同样只动 transform 与 opacity */
+.card--leaving {
+    opacity: 0;
+    transform: translateY(-14px) scale(0.92);
+    pointer-events: none;
+}
+
+/* 退场卡牌的「幽灵层」：盖在结果区之上、不参与布局。
+   作用：让旧卡原地淡出的同时，新卡可以立刻进入正常布局，
+   避免「旧卡消失把新卡顶跑位」造成的跳动。 */
+.card-ghost-layer {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+
+/* --------------------------------------------------------------------------
+   2. 翻转层：负责 rotateY
+   单独一层做 3D 变换，走 GPU 合成路径（PRD NFR-P9）
+   -------------------------------------------------------------------------- */
+.card__inner {
+    position: absolute;
+    inset: 0;
+
+    /* keep-3d 让子元素的 rotateY(180deg) 在同一个 3D 空间内解析 */
+    transform-style: preserve-3d;
+    transition: transform var(--dur-flip) var(--ease-in-out);
+}
+
+.card--flipped .card__inner {
+    transform: rotateY(180deg);
+}
+
+/* --------------------------------------------------------------------------
+   卡牌侧棱：制造「厚度感」（PRD F-13 / AC-13）
+   --------------------------------------------------------------------------
+   【为什么它不需要任何动画或 JS】
+   这是一块只有几像素宽的平面，在卡牌自身的坐标系里先绕 Y 轴转 90°，
+   于是它垂直于卡面 —— 也就是真实卡牌的「侧边」。
+
+   它跟随内层一起旋转，可见宽度 = 棱宽 × |sin θ|（θ 为内层翻转角）：
+     · θ = 0°（卡背正对观众）→ 可见宽度 0，完全隐形，不干扰卡背观感；
+     · θ = 90°（卡面正好侧对观众、被压成一条线）→ 可见宽度 = 棱宽，
+       恰好补上那一条线，于是「线」看起来有了厚度；
+     · θ = 180°（卡面正对观众）→ 又回到隐形，不会污染结果文字。
+   把它贴在卡牌右边缘，翻转时它正好落在卡牌的轮廓线上，观感自然。
+
+   全部是静态 transform，零动画开销、不改 JS、不违反 NFR-P7。
+   -------------------------------------------------------------------------- */
+.card__edge {
+    position: absolute;
+    top: 3%;
+    bottom: 3%;
+    right: 0;
+    width: var(--card-edge);
+
+    /* 棱面本身做一点渐变，避免纯色在 4K 下显得像一条脏线 */
+    border-radius: calc(var(--card-edge) / 2);
+    background: linear-gradient(180deg, #ded8f6 0%, #b3a7de 50%, #ded8f6 100%);
+    transform: rotateY(90deg);
+    pointer-events: none;
+}
+
+/* --------------------------------------------------------------------------
+   3. 卡面：正反两面重叠放置，各自隐藏背面
+   -------------------------------------------------------------------------- */
+.card__face {
+    position: absolute;
+    inset: 0;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-xs);
+
+    border-radius: var(--radius-md);
+    overflow: hidden;
+
+    /* 关键：背面不可见，否则翻转时会看到镜像文字（AC-13） */
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+}
+
+/* --- 卡背：素材为 300×420（5:7），用 contain 保证不被裁切 --- */
+.card__face--back {
+    background: url("../assets/img/card_back.svg") center / contain no-repeat;
+
+    /* 待翻开时整卡可点 */
+    cursor: pointer;
+}
+
+/* --- 卡面：默认旋转 180°，与内层翻转后正好正对观众 --- */
+.card__face--front {
+    transform: rotateY(180deg);
+    background: linear-gradient(160deg, #ffffff 0%, #f3f0ff 55%, #e8f6ff 100%);
+    border: 2px solid var(--color-border-strong);
+}
+
+/* --------------------------------------------------------------------------
+   4. 卡面文字（PRD F-08 / AC-07）
+   两行：上行学号（小字号、次要色），下行姓名（大字号、视觉焦点）
+   学号为空时不渲染 .card__num，此时姓名因 flex 居中而垂直居中（AC-07⑤）
+   -------------------------------------------------------------------------- */
+.card__num {
+    color: var(--color-text-muted);
+    font-weight: 700;
+    letter-spacing: 1px;
+    line-height: 1.1;
+
+    /* 学号一般不换行；极端长学号允许缩放兜底 */
+    white-space: nowrap;
+}
+
+.card__name {
+    /* 姓名是全场视觉焦点（NFR-M7），用主色加重 */
+    color: var(--color-primary);
+    font-weight: 800;
+    letter-spacing: 2px;
+    line-height: 1.15;
+
+    /* 不换行，配合 clamp 字号保证不溢出卡面（AC-07④） */
+    white-space: nowrap;
+}
+
+/* 单张卡：姓名 ≥ 64px、学号 ≥ 30px（AC-07③） */
+.card--solo .card__name {
+    font-size: clamp(64px, 4.2vw, 116px);
+}
+
+.card--solo .card__num {
+    font-size: clamp(30px, 2vw, 54px);
+}
+
+/* 5 张并排：姓名 ≥ 40px、学号 ≥ 22px（AC-07④） */
+.card--multi .card__name {
+    font-size: clamp(40px, 2.1vw, 62px);
+    letter-spacing: 1px;
+}
+
+.card--multi .card__num {
+    font-size: clamp(22px, 1.15vw, 34px);
+}
+
+/* --------------------------------------------------------------------------
+   5. 待翻开提示
+   只对 opacity 做脉冲（零重绘成本），放在独立元素上，
+   既不干扰外层位移也不干扰内层旋转（PRD §6.1 第 4 步）
+   -------------------------------------------------------------------------- */
+.card__hint {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 4%;
+
+    color: var(--color-text-on-primary);
+    font-size: var(--font-size-small);
+    font-weight: 600;
+    text-align: center;
+
+    /* 卡背是深紫底，加一点文字阴影保证可读（静态，不参与动画） */
+    text-shadow: 0 1px 4px rgb(46 42 69 / 60%);
+
+    animation: card-hint-pulse 1600ms var(--ease-in-out) infinite;
+    pointer-events: none;
+}
+
+/* 翻开后提示自然消失，不再脉冲 */
+.card--flipped .card__hint {
+    opacity: 0;
+    animation: none;
+}
+
+@keyframes card-hint-pulse {
+    0%,
+    100% {
+        opacity: 0.45;
+    }
+
+    50% {
+        opacity: 1;
+    }
+}
+
+/* --------------------------------------------------------------------------
+   6. 结果展示区的空状态
+   -------------------------------------------------------------------------- */
+.stage__empty {
+    color: var(--color-text-muted);
+    font-size: var(--font-size-heading);
+    text-align: center;
+}
+
+/* --------------------------------------------------------------------------
+   7. F-17b 结果漂移覆盖层（PRD §5 F-17b / 2026-09-13 第三轮修订）
+   --------------------------------------------------------------------------
+   覆盖在卡牌正面之上，做一次半透明闪光然后消失 —— 让「翻牌 → 闪一下 →
+   变成另一个人」有过渡感。
+
+   时长：2026-09-13 第三轮从 320ms 拉长到 400ms（keyframe 自身只改 ~400ms，
+   留给 JS overlay 自行设置 ms 后再淡出 ≈ 580ms 总时长，比翻牌动画（600ms）
+   略短、不会延迟揭晓）：
+
+   视觉上是 0→1 闪一下再淡出，所以它本身已经在
+   GPU 合成层上跑，不引入新的重绘（NFR-P6 / P7）。
+   -------------------------------------------------------------------------- */
+.card__drift-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+
+    border-radius: inherit;
+    background:
+        radial-gradient(circle at 50% 50%, rgb(255 196 107 / 70%) 0%, rgb(255 143 177 / 70%) 60%, transparent 100%);
+
+    opacity: 0;
+    transform: scale(0.85);
+    pointer-events: none;
+
+    /* 时序（与 card.js 的常量绑定，PRD TI-31 / NFR-M6）：
+       opacity 用 220ms 渐入（= DRIFT_COVER，覆盖到位的那一刻 JS 才换字，
+       换字动作被闪光完全遮住），随后 transform 继续缓慢放大到 400ms。 */
+    transition:
+        opacity 220ms linear,
+        transform 400ms var(--ease-out);
+}
+
+.card__drift-overlay.is-on {
+    opacity: 1;
+    transform: scale(1.05);
+}
+
+.card__drift-overlay.is-out {
+    opacity: 0;
+    transform: scale(1.12);
+}

@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 600" width="400" height="600" role="img" aria-label="看板娘占位图 - 出结果状态">
+  <title>看板娘占位图 - 出结果 (result)</title>
+  <desc> StellarDraw 占位素材。替换本文件即可更换看板娘形象，请保持文件名与画布比例 2:3 不变。</desc>
+
+  <defs>
+    <linearGradient id="resBody" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FF8FB1"/>
+      <stop offset="100%" stop-color="#8B7CFF"/>
+    </linearGradient>
+    <linearGradient id="resHair" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FF8FB1"/>
+      <stop offset="100%" stop-color="#FFC46B"/>
+    </linearGradient>
+  </defs>
+
+  <!-- 脚下光晕（最亮） -->
+  <ellipse cx="200" cy="556" rx="140" ry="20" fill="#FF8FB1" opacity="0.25"/>
+
+  <!-- 撒花星点 -->
+  <g fill="#FFC46B" opacity="0.85">
+    <path d="M76 150 l6 14 14 6 -14 6 -6 14 -6 -14 -14 -6 14 -6 Z"/>
+    <path d="M330 220 l5 12 12 5 -12 5 -5 12 -5 -12 -12 -5 12 -5 Z"/>
+    <path d="M96 330 l4 10 10 4 -10 4 -4 10 -4 -10 -10 -4 10 -4 Z"/>
+    <path d="M318 380 l4 10 10 4 -10 4 -4 10 -4 -10 -10 -4 10 -4 Z"/>
+  </g>
+
+  <!-- 身体 -->
+  <path d="M200 262 C246 262 272 300 276 380 L284 520 Q284 536 268 536 L132 536 Q116 536 116 520 L124 380 C128 300 154 262 200 262 Z"
+        fill="url(#resBody)" opacity="0.94"/>
+
+  <!-- 举起的双臂 -->
+  <path d="M147 320 C120 290 100 240 92 205" stroke="#FFB3C7" stroke-width="22"
+        stroke-linecap="round" fill="none"/>
+  <path d="M253 320 C280 290 300 240 308 205" stroke="#FFB3C7" stroke-width="22"
+        stroke-linecap="round" fill="none"/>
+  <circle cx="90" cy="198" r="14" fill="#FFE3EC"/>
+  <circle cx="310" cy="198" r="14" fill="#FFE3EC"/>
+
+  <!-- 头部 -->
+  <circle cx="200" cy="185" r="72" fill="#FFE3EC"/>
+
+  <!-- 头发 -->
+  <path d="M128 182 A72 72 0 0 1 272 182 L272 148 A72 58 0 0 0 128 148 Z" fill="url(#resHair)"/>
+  <path d="M130 176 q-16 92 8 152 q-32 -62 -24 -152 Z" fill="url(#resHair)"/>
+  <path d="M270 176 q16 92 -8 152 q32 -62 24 -152 Z" fill="url(#resHair)"/>
+
+  <!-- 眼睛（出结果：闪亮的星星眼） -->
+  <g fill="#3B3A5A">
+    <path d="M176 176 l5 11 12 2 -9 9 2 12 -10 -6 -10 6 2 -12 -9 -9 12 -2 Z"/>
+    <path d="M224 176 l5 11 12 2 -9 9 2 12 -10 -6 -10 6 2 -12 -9 -9 12 -2 Z"/>
+  </g>
+
+  <!-- 张嘴欢呼 -->
+  <path d="M186 210 q14 20 28 0 Z" fill="#E8557A"/>
+  <path d="M191 214 q9 10 18 0 Z" fill="#FF8FB1"/>
+
+  <!-- 腮红 -->
+  <ellipse cx="153" cy="204" rx="13" ry="8" fill="#FF8FB1" opacity="0.6"/>
+  <ellipse cx="247" cy="204" rx="13" ry="8" fill="#FF8FB1" opacity="0.6"/>
+
+  <!-- 占位标识 -->
+  <text x="200" y="580" text-anchor="middle" font-family="sans-serif" font-size="19"
+        fill="#FF8FB1" opacity="0.75" letter-spacing="2">PLACEHOLDER - RESULT</text>
+</svg>

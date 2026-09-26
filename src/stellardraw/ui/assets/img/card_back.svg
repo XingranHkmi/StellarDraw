@@ -1,0 +1,44 @@
+<svg width="300" height="420" xmlns="http://www.w3.org/2000/svg" aria-label="卡牌背面占位图" role="img">
+ <title>CardBack</title>
+ <desc> StellarDraw 占位素材。卡牌比例 5:7，替换本文件即可更换卡背设计，请保持画布比例不变。</desc>
+ <defs>
+  <!-- 卡面中央的放射底纹 -->
+  <linearGradient y2="1" x2="1" y1="0" x1="0" id="cardBg">
+   <stop stop-color="#5B6BE8" offset="0%"/>
+   <stop stop-color="#7C6BFF" offset="55%"/>
+   <stop stop-color="#4FC3F7" offset="100%"/>
+  </linearGradient>
+  <linearGradient y2="1" x2="1" y1="0" x1="0" id="cardEdge">
+   <stop stop-color="#FFE9A8" offset="0%"/>
+   <stop stop-color="#FFC46B" offset="50%"/>
+   <stop stop-color="#FFE9A8" offset="100%"/>
+  </linearGradient>
+  <radialGradient r="50%" cy="50%" cx="50%" id="cardGlow">
+   <stop stop-opacity="0.42" stop-color="#FFFFFF" offset="0%"/>
+   <stop stop-opacity="0.06" stop-color="#FFFFFF" offset="70%"/>
+   <stop stop-opacity="0" stop-color="#FFFFFF" offset="100%"/>
+  </radialGradient>
+ </defs>
+ <!-- 卡底 + 金色描边 -->
+ <!-- 内层细描边 -->
+ <!-- 中央光晕 -->
+ <!-- 中央徽章：双环 + 星形 -->
+ <!-- 四角装饰点 -->
+ <!-- 占位标识 -->
+ <g>
+  <title>Layer 1</title>
+  <rect id="svg_1" fill="url(#cardBg)" rx="20" height="412" width="292" y="4" x="4"/>
+  <rect id="svg_2" stroke-width="6" stroke="url(#cardEdge)" fill="none" rx="20" height="412" width="292" y="4" x="4"/>
+  <rect id="svg_3" opacity="0.45" stroke-width="1.6" stroke="#FFFFFF" fill="none" rx="12" height="376" width="256" y="22" x="22"/>
+  <circle id="svg_4" fill="url(#cardGlow)" r="104" cy="210" cx="150"/>
+  <circle id="svg_5" opacity="0.55" stroke-width="2" stroke="#FFFFFF" fill="none" r="76" cy="210" cx="150"/>
+  <circle id="svg_6" opacity="0.9" stroke-width="3" stroke="url(#cardEdge)" fill="none" r="62" cy="210" cx="150"/>
+  <path stroke="null" id="svg_7" opacity="0.95" fill="#FFE9A8" d="m150.16393,150.34426l15.24423,38.11058l40.96888,3.81106l-31.44123,26.67741l9.52765,40.01611l-34.29953,-20.96082l-34.29953,20.96082l9.52765,-40.01611l-31.44123,-26.67741l40.96888,-3.81106l15.24423,-38.11058z"/>
+  <g id="svg_8" opacity="0.8" fill="#FFE9A8">
+   <circle id="svg_9" r="4" cy="44" cx="44"/>
+   <circle id="svg_10" r="4" cy="44" cx="256"/>
+   <circle id="svg_11" r="4" cy="376" cx="44"/>
+   <circle id="svg_12" r="4" cy="376" cx="256"/>
+  </g>
+ </g>
+</svg>

@@ -1,0 +1,538 @@
+/* ==========================================================================
+    StellarDraw · 基础样式（令牌 / 重置 / 通用控件）
+   --------------------------------------------------------------------------
+   命名规范：BEM（块__元素--修饰符），见 AGENTS.md 第五章
+   性能约束（PRD NFR-P6 / P7）：
+     · 只允许对 transform 与 opacity 做过渡/动画
+     · 禁止把 box-shadow / border-radius / filter 放进 transition
+       本文件内的 box-shadow 一律是**静态**装饰，不参与任何动画
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. 设计令牌（CSS 变量）
+   集中管理主题色与时长，改配色 / 调动画只需改这里 —— PRD NFR-M6 / R-03
+   视觉方向：明亮二次元手游风（PRD 第三轮确认）
+   -------------------------------------------------------------------------- */
+:root {
+    /* 背景渐变：浅紫白 → 浅蓝白 */
+    --color-bg-start: #f6f3ff;
+    --color-bg-end: #e8f4ff;
+
+    /* 主色：紫蓝与青蓝，对应看板娘的占位素材配色 */
+    --color-primary: #7c6bff;
+    --color-primary-dark: #6152e0;
+    --color-accent: #4fc3f7;
+
+    /* 点缀色 */
+    --color-pink: #ff8fb1;
+    --color-gold: #ffc46b;
+
+    /* 文字 */
+    --color-text: #2e2a45;
+    --color-text-muted: #7a7591;
+    --color-text-on-primary: #ffffff;
+
+    /* 面 / 边框 */
+    --color-surface: #ffffff;
+    --color-surface-soft: #f7f5ff;
+    --color-border: #e3ddf5;
+    --color-border-strong: #c9c0ef;
+
+    /* 语义色 */
+    --color-success: #17a673;
+    --color-danger: #ef5b7a;
+    --color-danger-soft: #fff0f4;
+
+    /* 圆角 */
+    --radius-sm: 8px;
+    --radius-md: 14px;
+    --radius-lg: 22px;
+    --radius-pill: 999px;
+
+    /* 间距 */
+    --space-xs: 6px;
+    --space-sm: 12px;
+    --space-md: 20px;
+    --space-lg: 32px;
+    --space-xl: 48px;
+
+    /* 字号：使用 clamp() 自适应，保证 4K 下不溢出（PRD §4.3） */
+    --font-size-title: clamp(28px, 2.4vw, 44px);
+    --font-size-heading: clamp(20px, 1.6vw, 30px);
+    --font-size-body: clamp(14px, 1.05vw, 19px);
+    --font-size-small: clamp(12px, 0.85vw, 16px);
+
+    /* 动画时长（PRD TBD-10：滑出 400ms / 翻转 600ms，统一收敛到令牌） */
+    --dur-slide: 400ms;
+    --dur-flip: 600ms;
+    --dur-fade: 200ms;
+    --dur-fast: 150ms;
+
+    /* 缓动曲线：出场类动画统一用 ease-out，停得住、不拖泥带水 */
+    --ease-out: cubic-bezier(0.22, 0.61, 0.36, 1);
+    --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+
+    /* 卡牌滑出专用缓动（PRD F-12 / AC-12、决策 TI-25）：
+       起步更快、收尾更柔，在同样的 400ms 预算内「甩出 → 停稳」的手感更明确。
+       轨迹依旧是直线（不改成弧线），这是对已验收 P0 行为的最小改动 */
+    --ease-slide: cubic-bezier(0.16, 0.84, 0.28, 1);
+
+    /* 卡牌 3D 翻转的景深与侧棱宽度（PRD F-13 / AC-13「中途可见厚度感」） */
+    --card-depth: 1400px;
+    --card-edge: 6px;
+
+    /* 触摸目标下限（PRD NFR-C3：≥ 44×44px） */
+    --touch-min: 44px;
+
+    /* 层级 */
+    --z-dialog: 200;
+    --z-settings: 100;
+    --z-toast: 300;
+}
+
+/* --------------------------------------------------------------------------
+   2. 基础重置
+   -------------------------------------------------------------------------- */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html,
+body {
+    height: 100%;
+    overflow: hidden; /* 主界面按视口铺满，不允许滚动条溢出（AC-22） */
+}
+
+/* 触摸屏优化（PRD NFR-C3）：禁止长按选中文本、禁止长按弹出右键菜单 */
+body {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+}
+
+/* 输入类控件必须允许选中与定位光标，否则老师没法改名单 */
+input,
+textarea,
+select {
+    -webkit-user-select: text;
+    user-select: text;
+    font: inherit;
+    color: inherit;
+}
+
+img {
+    display: block;
+    max-width: 100%;
+}
+
+/* --------------------------------------------------------------------------
+   3. 页面容器
+   -------------------------------------------------------------------------- */
+.page {
+    min-height: 100%;
+
+    /* 纯 CSS 渐变背景：无图片、无滤镜，符合性能约束（PRD NFR-P12） */
+    background: linear-gradient(135deg, var(--color-bg-start) 0%, var(--color-bg-end) 100%);
+
+    color: var(--color-text);
+    font-family: "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
+    line-height: 1.5;
+}
+
+/* 自定义滚动条：设置面板内名单很长时需要，避免默认滚动条在 4K 下过粗 */
+.page ::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+}
+
+.page ::-webkit-scrollbar-thumb {
+    border: 3px solid transparent;
+    border-radius: var(--radius-pill);
+    background: var(--color-border-strong);
+    background-clip: content-box;
+}
+
+.page ::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+/* --------------------------------------------------------------------------
+   4. 按钮（block: btn）
+   所有按钮统一满足触摸目标 ≥ 44×44px
+   -------------------------------------------------------------------------- */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-xs);
+    min-height: var(--touch-min);
+    padding: 0 var(--space-md);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-surface);
+
+    color: var(--color-text);
+    font-size: var(--font-size-body);
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+
+    /* 只过渡 transform 与 opacity：点击反馈用缩放而非改背景色，
+       避免每帧重绘（PRD NFR-P6 / NFR-P7） */
+    transition: transform var(--dur-fast) var(--ease-out),
+                opacity var(--dur-fast) linear;
+}
+
+.btn:hover {
+    border-color: var(--color-border-strong);
+}
+
+.btn:active {
+    transform: scale(0.96);
+}
+
+.btn:focus-visible {
+    outline: 3px solid var(--color-accent);
+    outline-offset: 2px;
+}
+
+.btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.btn:disabled:active {
+    transform: none;
+}
+
+/* --- 变体 --- */
+
+.btn--primary {
+    border-color: transparent;
+    background: linear-gradient(135deg, var(--color-primary), var(--color-accent));
+    color: var(--color-text-on-primary);
+}
+
+.btn--ghost {
+    background: var(--color-surface-soft);
+}
+
+.btn--danger {
+    border-color: transparent;
+    background: var(--color-danger);
+    color: var(--color-text-on-primary);
+}
+
+.btn--sm {
+    min-height: 36px;
+    padding: 0 var(--space-sm);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-small);
+}
+
+/* 工具型入口（设置 / 简洁视图）：左下角，尺寸更大方便触摸 */
+.btn--tool {
+    min-height: 52px;
+    padding: 0 var(--space-lg);
+    border-radius: var(--radius-lg);
+    background: var(--color-surface);
+    box-shadow: 0 4px 16px rgb(124 107 255 / 10%);
+}
+
+.btn__icon {
+    font-size: 1.25em;
+    line-height: 1;
+}
+
+/* 抽取按钮：主操作，右侧、体量最大，与左侧工具入口明显区分 */
+.btn--draw {
+    min-width: clamp(180px, 13vw, 300px);
+    min-height: clamp(64px, 4.4vw, 96px);
+    border-color: transparent;
+    border-radius: var(--radius-lg);
+    background: linear-gradient(135deg, var(--color-primary), var(--color-accent));
+    color: var(--color-text-on-primary);
+    font-size: clamp(20px, 1.5vw, 32px);
+    font-weight: 700;
+    letter-spacing: 1px;
+    box-shadow: 0 8px 24px rgb(124 107 255 / 24%);
+}
+
+/* --------------------------------------------------------------------------
+   5. 开关（block: switch）
+   用纯 CSS 实现的滑动开关；滑块位移只动 transform
+   -------------------------------------------------------------------------- */
+.switch {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    min-height: var(--touch-min);
+    cursor: pointer;
+}
+
+/* 原生 checkbox 语义保留、视觉隐藏（无障碍与键盘可达性） */
+.switch__input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.switch__track {
+    position: relative;
+    flex: 0 0 auto;
+    width: 62px;
+    height: 34px;
+    border-radius: var(--radius-pill);
+    background: #d9d3ee;
+    transition: transform var(--dur-fast) var(--ease-out);
+}
+
+.switch__thumb {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    width: 26px;
+    height: 26px;
+    border-radius: var(--radius-pill);
+    background: var(--color-surface);
+    box-shadow: 0 2px 6px rgb(46 42 69 / 20%);
+    transition: transform var(--dur-fast) var(--ease-out);
+}
+
+.switch__input:checked ~ .switch__track {
+    background: var(--color-primary);
+}
+
+.switch__input:checked ~ .switch__track .switch__thumb {
+    transform: translateX(28px);
+}
+
+.switch__input:focus-visible ~ .switch__track {
+    outline: 3px solid var(--color-accent);
+    outline-offset: 2px;
+}
+
+.switch__label {
+    font-size: var(--font-size-body);
+}
+
+/* --------------------------------------------------------------------------
+   6. 表单字段（block: field）
+   -------------------------------------------------------------------------- */
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    margin-bottom: var(--space-md);
+}
+
+.field--row {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.field__label {
+    color: var(--color-text-muted);
+    font-size: var(--font-size-small);
+}
+
+.field__input,
+.field__select {
+    flex: 1 1 220px;
+    min-width: 0;
+    min-height: var(--touch-min);
+    padding: 0 var(--space-sm);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface);
+    font-size: var(--font-size-body);
+}
+
+.field__input:focus,
+.field__select:focus {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 1px;
+}
+
+.field__input[readonly] {
+    background: var(--color-surface-soft);
+    color: var(--color-text-muted);
+}
+
+.field__range {
+    flex: 1 1 200px;
+    min-height: var(--touch-min);
+    accent-color: var(--color-primary);
+}
+
+.field__value {
+    min-width: 4ch;
+    color: var(--color-text-muted);
+    font-size: var(--font-size-small);
+    text-align: right;
+}
+
+/* --------------------------------------------------------------------------
+   7. 名单表格（block: table）
+   -------------------------------------------------------------------------- */
+.table {
+    margin-bottom: var(--space-md);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-surface);
+    overflow: hidden;
+}
+
+.table__head,
+.table__row {
+    display: grid;
+    grid-template-columns: 120px 1fr 88px;
+    align-items: center;
+    gap: var(--space-xs);
+    padding: var(--space-xs) var(--space-sm);
+}
+
+.table__head {
+    border-bottom: 1px solid var(--color-border);
+    background: var(--color-surface-soft);
+    color: var(--color-text-muted);
+    font-size: var(--font-size-small);
+}
+
+.table__body {
+    max-height: 40vh;
+    overflow-y: auto;
+}
+
+.table__row {
+    border-bottom: 1px dashed var(--color-border);
+}
+
+.table__row:last-child {
+    border-bottom: none;
+}
+
+.table__cell {
+    width: 100%;
+    min-height: 40px;
+    padding: 0 var(--space-xs);
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    font-size: var(--font-size-body);
+}
+
+.table__cell:hover {
+    border-color: var(--color-border);
+}
+
+.table__cell:focus {
+    border-color: var(--color-accent);
+    outline: none;
+    background: var(--color-surface);
+}
+
+.table__empty {
+    padding: var(--space-lg);
+    color: var(--color-text-muted);
+    font-size: var(--font-size-body);
+    text-align: center;
+}
+
+/* --------------------------------------------------------------------------
+   8. 轻提示（block: toast）
+   左下角底部居中冒出，不遮挡右下角的抽取按钮
+   -------------------------------------------------------------------------- */
+.toast-area {
+    position: fixed;
+    left: 50%;
+    bottom: calc(var(--space-lg) + 8vh);
+    z-index: var(--z-toast);
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-xs);
+
+    transform: translateX(-50%);
+    pointer-events: none;
+}
+
+.toast {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    max-width: min(70vw, 900px);
+    padding: var(--space-sm) var(--space-md);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-surface);
+    box-shadow: 0 8px 28px rgb(46 42 69 / 16%);
+
+    font-size: var(--font-size-body);
+
+    /* 出场动画只动 transform 与 opacity（PRD NFR-P6） */
+    animation: toast-in var(--dur-fade) var(--ease-out);
+    pointer-events: auto;
+}
+
+.toast--info {
+    border-color: var(--color-border-strong);
+}
+
+.toast--success {
+    border-color: var(--color-success);
+}
+
+.toast--error {
+    border-color: var(--color-danger);
+    background: var(--color-danger-soft);
+}
+
+.toast__text {
+    flex: 1 1 auto;
+}
+
+.toast__action {
+    flex: 0 0 auto;
+    min-height: 36px;
+    padding: 0 var(--space-sm);
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    background: var(--color-primary);
+    color: var(--color-text-on-primary);
+    font-size: var(--font-size-small);
+    font-weight: 600;
+    cursor: pointer;
+}
+
+@keyframes toast-in {
+    from {
+        opacity: 0;
+        transform: translateY(16px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* --------------------------------------------------------------------------
+   9. 工具类
+   -------------------------------------------------------------------------- */
+/* 视觉隐藏但保留占位：看板娘关闭时用它 —— 绝不使用 display:none（PRD TI-16） */
+.is-invisible {
+    visibility: hidden;
+}
+
+[hidden] {
+    display: none !important;
+}

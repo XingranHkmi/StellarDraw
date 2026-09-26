@@ -1,0 +1,47 @@
+# =============================================================================
+# ClassRand · Git 忽略规则
+# 目标：仓库里只保留「源码 + 文档 + 依赖声明」，
+#       一切由运行/构建/IDE/AI 产生的产物、以及含隐私的数据都不入库。
+# =============================================================================
+
+# ---- 1. Python 运行产物 ----
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+
+# ---- 2. 虚拟环境（30MB+，绝不能入库；别人用 uv sync 重建即可）----
+.venv/
+venv/
+
+# ---- 3. 测试 / 覆盖率 / lint 缓存 ----
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# ---- 4. 编辑器与 IDE ----
+.idea/
+.vscode/
+*.iml
+
+# ---- 5. AI 工作区（本地记忆、探针脚本、一次性截图，与产品无关）----
+.workbuddy/
+AGENTS.md
+.docs/
+
+# ---- 6. 运行时数据（⚠️ 含真实学生名单 data/rosters/*.json 与本机绝对路径
+#        data/config.json，绝对不能上传；公开仓库尤其危险）----
+data/
+
+# ---- 7. 打包产物（exe 请作为 GitHub Release 附件发布，不要提交进仓库）----
+*.exe
+*.spec
+
+# ---- 9. 操作系统 ----
+Thumbs.db
+.DS_Store
+Desktop.ini

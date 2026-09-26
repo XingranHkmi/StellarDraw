@@ -1,0 +1,280 @@
+/* ==========================================================================
+    StellarDraw · 设置面板与通用对话框
+   --------------------------------------------------------------------------
+   需求：PRD §4.2（覆盖层 modal，5 个标签页）/ F-10 / AC-09
+   设计要点：
+     · 不跳转页面，关闭后回到抽卡界面
+     · 5 个页面只显示当前选中页，其余用 hidden 收起（切换零动画成本）
+     · 出现/消失只做 opacity 过渡，不做位移，避免与内部滚动条互相拉扯
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. 设置面板（block: settings）
+   -------------------------------------------------------------------------- */
+.settings {
+    position: fixed;
+    inset: 0;
+    z-index: var(--z-settings);
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-lg);
+}
+
+.settings__backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgb(46 42 69 / 38%);
+}
+
+.settings__panel {
+    position: relative;
+
+    display: grid;
+    grid-template-rows: auto auto minmax(0, 1fr);
+
+    width: min(1180px, 92vw);
+    height: min(86vh, 900px);
+    padding: var(--space-lg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    background: var(--color-surface);
+    box-shadow: 0 24px 64px rgb(46 42 69 / 26%);
+}
+
+.settings__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-md);
+}
+
+.settings__title {
+    font-size: var(--font-size-title);
+    font-weight: 800;
+    letter-spacing: 2px;
+}
+
+.settings__close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    /* 触摸目标 ≥ 44×44px（AC-09⑤ / NFR-C3） */
+    width: var(--touch-min);
+    height: var(--touch-min);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface-soft);
+
+    color: var(--color-text-muted);
+    font-size: 22px;
+    cursor: pointer;
+
+    transition: transform var(--dur-fast) var(--ease-out);
+}
+
+.settings__close:active {
+    transform: scale(0.94);
+}
+
+/* --- 标签页导航 --- */
+.settings__tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+    margin: var(--space-md) 0;
+    padding-bottom: var(--space-sm);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.settings__tab {
+    min-height: var(--touch-min);
+    padding: 0 var(--space-md);
+    border: 1px solid transparent;
+    border-radius: var(--radius-pill);
+    background: transparent;
+
+    color: var(--color-text-muted);
+    font-size: var(--font-size-body);
+    font-weight: 600;
+    cursor: pointer;
+
+    transition: transform var(--dur-fast) var(--ease-out);
+}
+
+.settings__tab:active {
+    transform: scale(0.96);
+}
+
+/* 当前标签：靠背景与文字色区分，不改动尺寸以免布局跳动 */
+.settings__tab--active {
+    border-color: transparent;
+    background: linear-gradient(135deg, var(--color-primary), var(--color-accent));
+    color: var(--color-text-on-primary);
+}
+
+/* --- 内容区 --- */
+.settings__body {
+    min-height: 0;
+    overflow-y: auto;
+    padding-right: var(--space-xs);
+}
+
+.settings__page[hidden] {
+    display: none !important;
+}
+
+.settings__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-sm);
+}
+
+.settings__hint {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    color: var(--color-text-muted);
+    font-size: var(--font-size-small);
+}
+
+.settings__saved {
+    color: var(--color-success);
+}
+
+/* --------------------------------------------------------------------------
+   2. 「关于」页（block: about）
+   -------------------------------------------------------------------------- */
+.about {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    margin-bottom: var(--space-md);
+}
+
+.about__icon {
+    flex: 0 0 auto;
+    width: clamp(72px, 6vw, 128px);
+    height: clamp(72px, 6vw, 128px);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-surface-soft);
+}
+
+.about__name {
+    font-size: var(--font-size-heading);
+    font-weight: 800;
+}
+
+.about__version,
+.about__tech {
+    color: var(--color-text-muted);
+    font-size: var(--font-size-small);
+}
+
+/* 文字占位区域：必须能被一眼看出是「占位」，便于后续替换（PRD §4.2） */
+.about__placeholder {
+    margin-bottom: var(--space-md);
+    padding: var(--space-md);
+    border: 1px dashed var(--color-border-strong);
+    border-radius: var(--radius-md);
+    background: var(--color-surface-soft);
+    color: var(--color-text-muted);
+    font-size: var(--font-size-body);
+    text-align: center;
+}
+
+/* --------------------------------------------------------------------------
+   3. 通用对话框（block: dialog）
+   承担确认 / 单行输入 / 多行输入 / 二选一四种形态
+   -------------------------------------------------------------------------- */
+.dialog {
+    position: fixed;
+    inset: 0;
+    z-index: var(--z-dialog);
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-lg);
+}
+
+.dialog__backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgb(46 42 69 / 32%);
+}
+
+.dialog__panel {
+    position: relative;
+
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+
+    width: min(720px, 88vw);
+    max-height: 84vh;
+    padding: var(--space-lg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    background: var(--color-surface);
+    box-shadow: 0 20px 56px rgb(46 42 69 / 24%);
+}
+
+.dialog__title {
+    font-size: var(--font-size-heading);
+    font-weight: 800;
+}
+
+.dialog__body {
+    min-height: 0;
+    overflow-y: auto;
+}
+
+.dialog__text {
+    font-size: var(--font-size-body);
+    white-space: pre-wrap;
+}
+
+.dialog__input {
+    width: 100%;
+    min-height: var(--touch-min);
+    margin-top: var(--space-sm);
+    padding: var(--space-xs) var(--space-sm);
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface);
+    font-size: var(--font-size-body);
+}
+
+.dialog__input--area {
+    min-height: 200px;
+    padding: var(--space-sm);
+    font-family: "Consolas", "Courier New", monospace;
+    line-height: 1.6;
+    resize: vertical;
+}
+
+.dialog__input:focus {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 1px;
+}
+
+.dialog__preview {
+    margin-top: var(--space-sm);
+    padding: var(--space-sm);
+    border: 1px dashed var(--color-border-strong);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface-soft);
+    color: var(--color-text-muted);
+    font-size: var(--font-size-small);
+}
+
+.dialog__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--space-sm);
+}

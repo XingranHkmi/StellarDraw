@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <!-- 触摸屏优化（PRD NFR-C3）：禁止双击缩放、禁止手势缩放 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title> StellarDraw 课堂抽号机</title>
+
+    <!--
+      样式加载顺序：先令牌与基础件（base），再布局与业务块。
+      全部为本地文件，不引用任何 CDN（PRD NFR-S1：软件完全离线）。
+    -->
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/layout.css">
+    <link rel="stylesheet" href="css/card.css">
+    <link rel="stylesheet" href="css/settings.css">
+    <link rel="stylesheet" href="css/effects.css">
+</head>
+<body class="page">
+
+<!--
+  ============================================================================
+  主界面（抽卡视图）—— 对应 PRD §4.1
+  ----------------------------------------------------------------------------
+    顶部：卡牌区（左上）· 加载状态（中上）· 看板娘（右上）
+    中部：抽卡结果展示区（中央）· 特殊效果区（右侧竖条，P2 占位）
+    底部：设置 + 简洁视图（左下）· 抽取 1 次 / 5 次（右下）
+  ============================================================================
+-->
+<div class="app">
+
+    <header class="topbar">
+
+        <!--
+          卡牌区：叠放的牌堆视觉（PRD F-11 / AC-11），同时是卡牌滑出动画的起点。
+          共 5 层卡背，自远及近依次为 back5 → back1；层数越多、错位越大，
+          「叠放」的观感越明确（AC-11 要求看得出是多张卡而非单张）。
+          全部错位与阴影都是**静态**变换，不参与任何动画（PRD NFR-P7）。
+        -->
+        <div class="deck" id="deck" aria-hidden="true">
+            <div class="deck__card deck__card--back5"></div>
+            <div class="deck__card deck__card--back4"></div>
+            <div class="deck__card deck__card--back3"></div>
+            <div class="deck__card deck__card--back2"></div>
+            <div class="deck__card deck__card--back1"></div>
+        </div>
+
+        <!-- 加载图标：反映抽取状态（PRD F-16） -->
+        <div class="status" id="status">
+            <span class="status__icon" id="status-icon" aria-hidden="true">↻</span>
+            <span class="status__text" id="status-text">准备就绪</span>
+        </div>
+
+        <!--
+          看板娘：三态立绘（PRD F-14 / AC-14）。
+          三张同名素材**同时叠放**在容器里，靠 data-state 切换 opacity 交叉淡入 ——
+          · 避免换 src 时的白屏闪烁（AC-12「无闪烁」的精神）；
+           · 只动 opacity，走 GPU 合成（NFR-P6）；
+           · 关闭开关时容器保留同尺寸空白占位（TI-16），绝不用 display:none。
+          TI-22：眨眼需要控制 SVG 内部的眼睛元素，与 AC-14②「同名替换即可」冲突，
+          因此待机态只做纯 CSS 的呼吸浮动，不做眨眼。
+        -->
+        <div class="mascot" id="mascot" data-state="idle">
+            <div class="mascot__stage" id="mascot-stage">
+                <img class="mascot__img mascot__img--idle" id="mascot-img-idle"
+                     src="assets/mascot/mascot_idle.png" alt="看板娘·流萤（待机）">
+                <img class="mascot__img mascot__img--loading" id="mascot-img-loading"
+                     src="assets/mascot/mascot_loading.png" alt="看板娘·流萤（抽取中）">
+                <img class="mascot__img mascot__img--result" id="mascot-img-result"
+                     src="assets/mascot/mascot_result.png" alt="看板娘·流萤（已出结果）">
+            </div>
+        </div>
+
+    </header>
+
+    <main class="stage">
+        <!-- 抽卡结果展示区：卡牌滑入 → 显示卡背 → 点击 3D 翻转 → 学号/姓名两行 -->
+        <div class="stage__results" id="results"></div>
+
+<!--
+  特殊效果区：P2 三个特殊效果按钮（增大概率 / 结果漂移 / 课堂叫醒）。
+  第七轮修订（2026-09-13）：改回 stage 内的**右侧竖列浮层**（紧贴屏幕右下角）。
+  容器是 absolute 定位的浮层，不挤占结果展示区宽度；3 个按钮竖向排列；
+  容器本身 pointer-events: none，由 .fx-bar 接管。
+-->
+<aside class="stage__effects" id="effects" aria-hidden="false">
+    <div class="fx-bar" id="fx-bar">
+
+        <!--
+          三个按钮统一采用「1 个图标 + 2 段文字（标题 + 状态）」的 BEM 结构。
+          is-armed 修饰符表示「本会话已配置，下一次抽卡生效」，
+          抽卡后单次性效果（drift / wake_up）会回到未生效。
+        -->
+        <button class="fx-btn" id="fx-boost" type="button" aria-haspopup="dialog">
+            <span class="fx-btn__icon" aria-hidden="true"></span>
+            <span class="fx-btn__title">增大概率</span>
+            <span class="fx-btn__status">未生效</span>
+        </button>
+
+        <button class="fx-btn" id="fx-drift" type="button" aria-haspopup="dialog">
+            <span class="fx-btn__icon" aria-hidden="true"></span>
+            <span class="fx-btn__title">结果漂移</span>
+            <span class="fx-btn__status">未生效</span>
+        </button>
+
+        <button class="fx-btn" id="fx-wake" type="button" aria-haspopup="dialog">
+            <span class="fx-btn__icon" aria-hidden="true"></span>
+            <span class="fx-btn__title">课堂叫醒</span>
+            <span class="fx-btn__status">未生效</span>
+        </button>
+    </div>
+</aside>
+    </main>
+
+    <footer class="dock">
+        <div class="dock__tools">
+            <button class="btn btn--tool" id="btn-settings" type="button">
+                <span class="btn__icon" aria-hidden="true">⚙</span>
+                <span class="btn__label">设置</span>
+            </button>
+
+            <!--
+              一键静音（PRD F-15 / AC-15④ / TI-30）。
+              **只做本次运行的临时调整**：点一下立即静音，再点恢复；
+              不写配置、也不改动设置面板里的「音效默认开关」，
+              重启后音效状态仍由设置里的默认开关决定。
+              aria-pressed 让读屏软件也能播报当前是否静音。
+            -->
+            <button class="btn btn--tool" id="btn-mute" type="button" aria-pressed="false">
+                <span class="btn__icon" id="btn-mute-icon" aria-hidden="true">🔊</span>
+                <span class="btn__label" id="btn-mute-label">音效</span>
+            </button>
+
+            <button class="btn btn--tool" id="btn-lite" type="button">简洁视图</button>
+        </div>
+
+        <div class="dock__draw">
+            <button class="btn btn--draw" id="btn-draw-1" type="button">抽取 1 次</button>
+            <button class="btn btn--draw" id="btn-draw-5" type="button">抽取 5 次</button>
+        </div>
+    </footer>
+
+</div>
+
+<!-- 轻提示容器：E-01/E-02/E-03/E-04/E-05 等提示都从这里冒出来 -->
+<div class="toast-area" id="toast-area" aria-live="polite"></div>
+
+<!--
+  ============================================================================
+  设置面板（PRD §4.2）—— 覆盖层 modal，共 5 个标签页
+  ============================================================================
+-->
+<div class="settings" id="settings" hidden>
+    <div class="settings__backdrop" data-settings-close></div>
+
+    <section class="settings__panel" role="dialog" aria-modal="true" aria-label="设置">
+
+        <header class="settings__header">
+            <h2 class="settings__title">设置</h2>
+            <button class="settings__close" id="settings-close" type="button" aria-label="关闭设置">✕</button>
+        </header>
+
+        <nav class="settings__tabs">
+            <button class="settings__tab" type="button" data-tab="roster">名单管理</button>
+            <button class="settings__tab" type="button" data-tab="rules">抽取规则</button>
+            <button class="settings__tab" type="button" data-tab="appearance">外观音效</button>
+            <button class="settings__tab" type="button" data-tab="external">外部程序</button>
+            <button class="settings__tab" type="button" data-tab="about">关于</button>
+        </nav>
+
+        <div class="settings__body">
+
+            <!-- ------------------------------ 名单管理（F-01 / F-02 / F-02b / F-02c / F-03 / F-04） -->
+            <section class="settings__page" data-page="roster">
+
+                <div class="field field--row">
+                    <label class="field__label" for="roster-select">班级</label>
+                    <select class="field__select" id="roster-select"></select>
+                    <button class="btn btn--sm" id="btn-roster-new" type="button">+ 新建</button>
+                    <button class="btn btn--sm" id="btn-roster-rename" type="button">重命名</button>
+                    <button class="btn btn--sm" id="btn-roster-delete" type="button">删除</button>
+                </div>
+
+                <!-- 名单表格：行由 settings.js 动态生成（用 class 标识，不用 id，避免动态 id） -->
+                <div class="table">
+                    <div class="table__head">
+                        <span class="table__col table__col--num">学号</span>
+                        <span class="table__col table__col--name">姓名</span>
+                        <span class="table__col table__col--ops">操作</span>
+                    </div>
+                    <div class="table__body" id="roster-rows"></div>
+                </div>
+
+                <div class="settings__actions">
+                    <button class="btn btn--sm" id="btn-add-student" type="button">+ 添加学生</button>
+                    <button class="btn btn--sm" id="btn-batch" type="button">批量粘贴</button>
+                </div>
+
+                <div class="settings__actions">
+                    <button class="btn btn--sm" id="btn-import-csv" type="button">导入 CSV</button>
+                    <button class="btn btn--sm" id="btn-csv-template" type="button">创建 CSV 模板</button>
+                    <button class="btn btn--sm" id="btn-open-data" type="button">打开 data 目录</button>
+                </div>
+
+                <p class="settings__hint">
+                    <span id="roster-count">共 0 人</span>
+                    <span class="settings__saved" id="roster-save-state"></span>
+                </p>
+
+            </section>
+
+            <!-- ------------------------------ 抽取规则（F-05） -->
+            <section class="settings__page" data-page="rules">
+                <label class="switch">
+                    <input class="switch__input" id="toggle-dedupe" type="checkbox">
+                    <span class="switch__track"><span class="switch__thumb"></span></span>
+                    <span class="switch__label">去重模式（开启后一轮内不重复，抽完自动重置）</span>
+                </label>
+            </section>
+
+            <!-- ------------------------------ 外观音效（F-14 / F-15 / TI-15 / TI-16） -->
+            <!--
+              这里的「音效」开关是**默认值**（写盘持久化）：程序启动时会用它作为
+              初始音效状态；主界面左下角的「一键静音」按钮只做本次运行的临时调整，
+              不会回写这个开关（PRD TI-30）。
+            -->
+            <section class="settings__page" data-page="appearance">
+                <label class="switch">
+                    <input class="switch__input" id="toggle-sound" type="checkbox">
+                    <span class="switch__track"><span class="switch__thumb"></span></span>
+                    <span class="switch__label">音效</span>
+                </label>
+
+                <div class="field field--row">
+                    <label class="field__label" for="range-volume">音量</label>
+                    <input class="field__range" id="range-volume"
+                           type="range" min="0" max="1" step="0.05" value="0.7">
+                    <span class="field__value" id="volume-value">70%</span>
+                </div>
+
+                <label class="switch">
+                    <input class="switch__input" id="toggle-mascot" type="checkbox">
+                    <span class="switch__track"><span class="switch__thumb"></span></span>
+                    <span class="switch__label">看板娘（关闭后右上区域保留空白占位）</span>
+                </label>
+            </section>
+
+            <!-- ------------------------------ 外部程序（F-09） -->
+            <section class="settings__page" data-page="external">
+                <div class="field field--row">
+                    <label class="field__label" for="input-external">程序路径</label>
+                    <input class="field__input" id="input-external" type="text"
+                           readonly placeholder="尚未设置">
+                    <button class="btn btn--sm" id="btn-browse-exe" type="button">浏览…</button>
+                </div>
+                <p class="settings__hint">
+                    可指定任意 exe，与  StellarDraw 相互独立：不传参、不共享数据。
+                </p>
+            </section>
+
+            <!-- ------------------------------ 关于（AC-09②③） -->
+            <section class="settings__page" data-page="about">
+                <div class="about">
+                    <img class="about__icon" id="about-icon"
+                         src="assets/img/app_icon.svg" alt="应用图标">
+                    <div class="about__meta">
+                        <h3 class="about__name" id="about-name"> StellarDraw 课堂抽号机</h3>
+                        <p class="about__version" id="about-version">版本 —</p>
+                        <p class="about__tech" id="about-tech"></p>
+                    </div>
+                </div>
+                <p class="about__placeholder" id="about-placeholder"></p>
+                <p class="settings__hint">数据目录：<span id="about-datadir"></span></p>
+            </section>
+
+        </div>
+    </section>
+</div>
+
+<!--
+  ============================================================================
+  通用对话框 —— 承担三类交互：
+    1. 纯确认（删除班级、创建模板等）
+    2. 单行输入（新建/重命名班级）
+    3. 多行输入（批量粘贴，带解析预览）
+    4. 二选一（CSV 导入冲突：覆盖 / 追加）
+  所有控件都为静态声明，通过 hidden 切换显隐，保证契约测试可静态校验。
+  ============================================================================
+-->
+<div class="dialog" id="dialog" hidden>
+    <div class="dialog__backdrop" data-dialog-cancel></div>
+
+    <section class="dialog__panel" role="dialog" aria-modal="true">
+        <h3 class="dialog__title" id="dialog-title"></h3>
+
+        <div class="dialog__body">
+            <p class="dialog__text" id="dialog-text"></p>
+            <input class="dialog__input" id="dialog-input" type="text" hidden>
+            <textarea class="dialog__input dialog__input--area" id="dialog-textarea"
+                      rows="8" spellcheck="false" hidden></textarea>
+            <p class="dialog__preview" id="dialog-preview" hidden></p>
+        </div>
+
+        <div class="dialog__actions">
+            <button class="btn btn--ghost" id="dialog-cancel" type="button">取消</button>
+            <button class="btn btn--ghost" id="dialog-alt" type="button" hidden></button>
+            <button class="btn btn--primary" id="dialog-ok" type="button">确定</button>
+        </div>
+    </section>
+</div>
+
+<!--
+  脚本加载顺序很重要：后加载的模块依赖前面的模块。
+  使用经典 script（非 ES Module）—— pywebview 通过 file:// 加载页面，
+  Chromium 对 file:// 下的 module script 会以 CORS 失败拒绝执行。
+  各模块通过 window.CR 命名空间通信，见 js/bridge.js 顶部说明。
+-->
+<script src="js/bridge.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/card.js"></script>
+<script src="js/settings.js"></script>
+<script src="js/fx.js"></script>
+<script src="js/app.js"></script>
+
+</body>
+</html>
